@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>simulation_hypothesis_vis</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080810;
+      --surface:   #0e0e18;
+      --border:    #1e1e32;
+      --accent:    #00ff88;
+      --accent2:   #0088ff;
+      --dim:       #404060;
+      --text:      #c8c8e0;
+      --text-dim:  #505070;
+      --mono:      'Courier New', 'Lucida Console', monospace;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+    }
+
+    #canvas {
+      display: block;
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── UI shell ───────────────────────────────────────────── */
+    #ui {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      grid-template-rows: 1fr auto;
+    }
+
+    #sidebar {
+      pointer-events: all;
+      background: rgba(8, 8, 16, 0.82);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    #sidebar-header {
+      padding: 14px 12px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #sidebar-header h1 {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    #sidebar-header p {
+      color: var(--text-dim);
+      margin-top: 4px;
+      line-height: 1.5;
+      font-size: 10px;
+    }
+
+    .section-label {
+      padding: 10px 12px 4px;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .shader-btn {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      background: none;
+      border: none;
+      border-bottom: 1px solid rgba(30, 30, 50, 0.5);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+      white-space: nowrap;
+    }
+
+    .shader-btn:hover { background: rgba(0, 255, 136, 0.06); color: var(--accent); }
+    .shader-btn.active { background: rgba(0, 255, 136, 0.1); color: var(--accent); border-left: 2px solid var(--accent); }
+
+    .shader-btn .tag {
+      display: inline-block;
+      font-size: 9px;
+      color: var(--text-dim);
+      margin-left: 4px;
+    }
+
+    /* ── Status bar ─────────────────────────────────────────── */
+    #statusbar {
+      grid-column: 1 / -1;
+      background: rgba(8, 8, 16, 0.9);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      height: 24px;
+      gap: 20px;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    #statusbar span { white-space: nowrap; }
+    #statusbar .val { color: var(--text); }
+    #statusbar .accent { color: var(--accent); }
+    #statusbar .err { color: #ff4444; }
+
+    /* ── Scene info overlay (top-right) ─────────────────────── */
+    #scene-info {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: rgba(8, 8, 16, 0.75);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      max-width: 260px;
+      pointer-events: none;
+    }
+
+    #scene-info h2 {
+      font-size: 13px;
+      color: var(--accent2);
+      letter-spacing: 0.06em;
+    }
+
+    #scene-info p {
+      margin-top: 5px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      font-size: 10px;
+    }
+
+    #scene-info .tags {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    #scene-info .tag-chip {
+      font-size: 9px;
+      padding: 1px 5px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Error overlay ───────────────────────────────────────── */
+    #error-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      padding: 40px;
+      color: #ff6666;
+      font-family: var(--mono);
+      font-size: 11px;
+      white-space: pre;
+      overflow: auto;
+      z-index: 100;
+      pointer-events: all;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="ui">
+  <nav id="sidebar">
+    <div id="sidebar-header">
+      <h1>simulation_hypothesis_vis</h1>
+      <p>Engine artifacts rendered visible.<br>
+         Move mouse to steer gaze in nature scene.</p>
+    </div>
+
+    <div class="section-label">— shaders</div>
+    <!-- populated by JS -->
+
+    <div class="section-label">— artifacts</div>
+    <!-- populated by JS -->
+
+    <div class="section-label">— diagnostics</div>
+    <!-- populated by JS -->
+  </nav>
+
+  <div><!-- spacer --></div>
+
+  <div id="statusbar">
+    <span>shader: <span class="val accent" id="stat-shader">—</span></span>
+    <span>t: <span class="val" id="stat-time">0.000</span>s</span>
+    <span>mouse: <span class="val" id="stat-mouse">—</span></span>
+    <span id="stat-err"></span>
+  </div>
+</div>
+
+<div id="scene-info">
+  <h2 id="info-label">—</h2>
+  <p id="info-desc"></p>
+  <div class="tags" id="info-tags"></div>
+</div>
+
+<pre id="error-overlay"></pre>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Scene manifest
+// ─────────────────────────────────────────────────────────────────────────────
+const SCENES = [
+  // shaders
+  {
+    group: 'shaders',
+    name: '_memory_pressure',
+    file: 'shaders/_memory_pressure.frag',
+    label: '_memory_pressure',
+    desc: 'Dense procedural city. LOD transitions, texture streaming, entity pop-in — the symptoms of a simulation running out of VRAM.',
+    tags: ['LOD', 'texture-streaming', 'pop-in', 'z-fighting'],
+  },
+  {
+    group: 'shaders',
+    name: '_observer_effect',
+    file: 'shaders/_observer_effect.frag',
+    label: '_observer_effect',
+    desc: 'Sparse forest. Entities exist only when observed — frustum culling, foveated rendering, quantum pop-in at the edge of perception. Move mouse to steer gaze.',
+    tags: ['frustum-culling', 'foveated', 'quantum-rendering'],
+  },
+  {
+    group: 'shaders',
+    name: '_physics_misalign',
+    file: 'shaders/_physics_misalign.frag',
+    label: '_physics_misalign',
+    desc: 'Stack of rigid bodies. Physics ticks at 60 Hz, render at ~90 Hz. The misalignment produces stutter, tunneling, TAA ghost trails.',
+    tags: ['timestep', 'tunneling', 'TAA', 'jitter'],
+  },
+  {
+    group: 'shaders',
+    name: '_portal_occlusion',
+    file: 'shaders/_portal_occlusion.frag',
+    label: '_portal_occlusion',
+    desc: 'Corridor of rooms. Portal rendering gates draw calls — only geometry visible through a doorway is submitted. Step outside the portal, the room stops existing.',
+    tags: ['portal-rendering', 'occlusion-culling', 'draw-call-budget'],
+  },
+  {
+    group: 'shaders',
+    name: '_void_state',
+    file: 'shaders/_void_state.frag',
+    label: '_void_state',
+    desc: 'The simulation before assets load. Empty BVH nodes, uninstantiated bounding volumes — the spatial lattice with nothing inside it.',
+    tags: ['BVH', 'octree', 'spatial-partition', 'pre-load'],
+  },
+  // artifacts
+  {
+    group: 'artifacts',
+    name: '_lod_pop',
+    file: 'artifacts/_lod_pop.frag',
+    label: '_lod_pop',
+    desc: 'The moment of LOD transition made legible. Geometry snaps between polygon budgets; the seam boundary flashes amber/blue at each threshold.',
+    tags: ['LOD', 'geometry-snap', 'detail-budget'],
+  },
+  {
+    group: 'artifacts',
+    name: '_pop_in',
+    file: 'artifacts/_pop_in.frag',
+    label: '_pop_in',
+    desc: 'Entities materialise at the streaming budget boundary — no fade, just absence then presence. Bounding sphere flash marks each spawn.',
+    tags: ['pop-in', 'streaming-budget', 'bounding-sphere'],
+  },
+  {
+    group: 'artifacts',
+    name: '_z_fight',
+    file: 'artifacts/_z_fight.frag',
+    label: '_z_fight',
+    desc: 'Two coplanar surfaces. The depth buffer cannot resolve which pixel belongs to which surface. Aliasing pattern shifts with camera angle.',
+    tags: ['z-fighting', 'depth-buffer', 'precision'],
+  },
+  {
+    group: 'artifacts',
+    name: '_taa_ghost',
+    file: 'artifacts/_taa_ghost.frag',
+    label: '_taa_ghost',
+    desc: 'TAA accumulation buffer bleeding between frames. Fast objects leave ghost trails; disocclusion zones flash with reprojection error.',
+    tags: ['TAA', 'ghosting', 'reprojection', 'disocclusion'],
+  },
+  // diagnostics
+  {
+    group: 'diagnostics',
+    name: '_debug_overlay',
+    file: 'diagnostics/_debug_overlay.frag',
+    label: '_debug_overlay',
+    desc: "Procedural terrain with all diagnostic channels active: wireframe, surface normals, UV seams, vertex colour. The engine's internal understanding of form.",
+    tags: ['wireframe', 'normals', 'UV-seams', 'vertex-color'],
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WebGL state
+// ─────────────────────────────────────────────────────────────────────────────
+const canvas  = document.getElementById('canvas');
+const gl      = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+if (!gl) showError('WebGL not available in this browser.');
+
+let currentProgram = null;
+let animFrame      = null;
+let startTime      = performance.now();
+let mouseX         = 0.5;
+let mouseY         = 0.5;
+let activeSceneIdx = 0;
+
+// Full-screen quad
+const QUAD_VERTS = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shader compilation
+// ─────────────────────────────────────────────────────────────────────────────
+const VERT_SRC = `
+attribute vec2 a_position;
+void main() {
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+
+function compileShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    const err = gl.getShaderInfoLog(s);
+    gl.deleteShader(s);
+    throw new Error(err);
+  }
+  return s;
+}
+
+function linkProgram(vertSrc, fragSrc) {
+  const vert = compileShader(gl.VERTEX_SHADER,   vertSrc);
+  const frag = compileShader(gl.FRAGMENT_SHADER, fragSrc);
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vert);
+  gl.attachShader(prog, frag);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    const err = gl.getProgramInfoLog(prog);
+    gl.deleteProgram(prog);
+    throw new Error(err);
+  }
+  gl.deleteShader(vert);
+  gl.deleteShader(frag);
+  return prog;
+}
+
+// Quad VBO (shared)
+const vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+gl.bufferData(gl.ARRAY_BUFFER, QUAD_VERTS, gl.STATIC_DRAW);
+
+function bindQuad(prog) {
+  const loc = gl.getAttribLocation(prog, 'a_position');
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Load & switch shader
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadScene(idx) {
+  const scene = SCENES[idx];
+  clearError();
+
+  let fragSrc;
+  try {
+    const resp = await fetch(scene.file);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} — ${scene.file}`);
+    fragSrc = await resp.text();
+  } catch (e) {
+    showError(`Could not fetch shader:\n${scene.file}\n\n${e.message}\n\nNote: serve this directory over HTTP (e.g. python -m http.server 8080) — fetch() requires a server.`);
+    return;
+  }
+
+  let prog;
+  try {
+    prog = linkProgram(VERT_SRC, fragSrc);
+  } catch (e) {
+    showError(`Shader compile error in ${scene.file}:\n\n${e.message}`);
+    return;
+  }
+
+  if (currentProgram) gl.deleteProgram(currentProgram);
+  currentProgram = prog;
+  activeSceneIdx = idx;
+  updateSidebarActive(idx);
+  updateSceneInfo(scene);
+  document.getElementById('stat-shader').textContent = scene.name;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Render loop
+// ─────────────────────────────────────────────────────────────────────────────
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+function render() {
+  animFrame = requestAnimationFrame(render);
+  if (!currentProgram) return;
+
+  const t = (performance.now() - startTime) / 1000;
+
+  gl.useProgram(currentProgram);
+  bindQuad(currentProgram);
+
+  // Standard Shadertoy-style uniforms
+  const uRes   = gl.getUniformLocation(currentProgram, 'u_resolution');
+  const uTime  = gl.getUniformLocation(currentProgram, 'u_time');
+  const uMouse = gl.getUniformLocation(currentProgram, 'u_mouse');
+
+  if (uRes)   gl.uniform2f(uRes,   canvas.width, canvas.height);
+  if (uTime)  gl.uniform1f(uTime,  t);
+  if (uMouse) gl.uniform2f(uMouse, mouseX * canvas.width, mouseY * canvas.height);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // Status bar
+  document.getElementById('stat-time').textContent  = t.toFixed(3);
+  document.getElementById('stat-mouse').textContent =
+    `${(mouseX * canvas.width).toFixed(0)}, ${(mouseY * canvas.height).toFixed(0)}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI
+// ─────────────────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const sections = { shaders: null, artifacts: null, diagnostics: null };
+
+  // Find section label nodes
+  sidebar.querySelectorAll('.section-label').forEach((el, i) => {
+    const keys = Object.keys(sections);
+    sections[keys[i]] = el;
+  });
+
+  SCENES.forEach((scene, idx) => {
+    const btn = document.createElement('button');
+    btn.className  = 'shader-btn';
+    btn.dataset.idx = idx;
+    btn.innerHTML  = scene.name + (scene.tags[0] ? `<span class="tag">[${scene.tags[0]}]</span>` : '');
+    btn.addEventListener('click', () => loadScene(idx));
+
+    // Insert after the correct section label
+    const after = sections[scene.group];
+    if (after && after.nextSibling) {
+      sidebar.insertBefore(btn, after.nextSibling);
+      // Update the "next sibling" anchor so subsequent entries in same group come after
+      sections[scene.group] = btn;
+    } else if (after) {
+      sidebar.appendChild(btn);
+      sections[scene.group] = btn;
+    }
+  });
+}
+
+function updateSidebarActive(idx) {
+  document.querySelectorAll('.shader-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.idx) === idx);
+  });
+}
+
+function updateSceneInfo(scene) {
+  document.getElementById('info-label').textContent = scene.label;
+  document.getElementById('info-desc').textContent  = scene.desc;
+  const tags = document.getElementById('info-tags');
+  tags.innerHTML = scene.tags.map(t => `<span class="tag-chip">${t}</span>`).join('');
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-overlay');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('stat-err').className = 'err';
+  document.getElementById('stat-err').textContent = '⚠ shader error';
+}
+
+function clearError() {
+  document.getElementById('error-overlay').style.display = 'none';
+  document.getElementById('stat-err').textContent = '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Events
+// ─────────────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', resize);
+canvas.addEventListener('mousemove', e => {
+  mouseX = e.clientX / window.innerWidth;
+  mouseY = 1.0 - e.clientY / window.innerHeight; // flip Y for GL coords
+});
+
+// Keyboard: number keys switch shaders
+document.addEventListener('keydown', e => {
+  const n = parseInt(e.key);
+  if (!isNaN(n) && n >= 1 && n <= SCENES.length) loadScene(n - 1);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────────────────────
+buildSidebar();
+resize();
+render();
+loadScene(0); // start with _memory_pressure
+</script>
+</body>
+</html>
