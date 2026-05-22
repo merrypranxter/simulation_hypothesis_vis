@@ -341,11 +341,32 @@ const QUAD_VERTS = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
 // ─────────────────────────────────────────────────────────────────────────────
 // Shader compilation
 // ─────────────────────────────────────────────────────────────────────────────
-const VERT_SRC = `
+const DEFAULT_VERT_SRC = `
 attribute vec2 a_position;
 void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
+
+function loadTextResource(path, fallback) {
+  try {
+    const request = new XMLHttpRequest();
+    request.open('GET', path, false);
+    request.send(null);
+
+    if (request.status === 0 || (request.status >= 200 && request.status < 300)) {
+      const text = request.responseText;
+      if (text && text.trim()) {
+        return text;
+      }
+    }
+  } catch (err) {
+    // Fall back to the inline shader to preserve current behavior if loading fails.
+  }
+
+  return fallback;
+}
+
+const VERT_SRC = loadTextResource('shaders/_vertex.vert', DEFAULT_VERT_SRC);
 
 function compileShader(type, src) {
   const s = gl.createShader(type);
