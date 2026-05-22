@@ -3,11 +3,6 @@
   "label": "_observer_effect",
   "description": "Sparse forest. Entities exist only when observed — frustum culling, foveated rendering, quantum pop-in at the edge of perception. Move the mouse to steer the gaze.",
   "shader": "shaders/_observer_effect.frag",
-  "uniforms": {
-    "FOV_HALF_ANGLE": 0.785,
-    "FOVEA_NEAR": 0.5,
-    "FOVEA_FAR": 2.0
-  },
   "camera": "first-person-mouse",
   "tags": ["frustum-culling", "foveated-rendering", "observer-effect", "quantum-rendering"]
 }
