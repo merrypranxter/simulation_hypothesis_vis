@@ -323,7 +323,10 @@ const SCENES = [
 // ─────────────────────────────────────────────────────────────────────────────
 const canvas  = document.getElementById('canvas');
 const gl      = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-if (!gl) showError('WebGL not available in this browser.');
+if (!gl) {
+  showError('WebGL not available in this browser.');
+  throw new Error('WebGL not available in this browser.');
+}
 
 let currentProgram = null;
 let animFrame      = null;
