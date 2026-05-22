@@ -94,7 +94,7 @@ void main() {
     
     // Frustum boundary visualization: subtle blue line at edge of perception
     float frustum_edge = smoothstep(PI * 0.22, PI * 0.25, angle_diff) 
-                       * smoothstep(PI * 0.4, PI * 0.35, angle_diff);
+                       * (1.0 - smoothstep(PI * 0.35, PI * 0.4, angle_diff));
     col += vec3(0.0, 0.1, 0.3) * frustum_edge * 0.3;
     
     // Fovea center marker (subtle)
