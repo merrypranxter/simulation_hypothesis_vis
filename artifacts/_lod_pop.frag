@@ -78,9 +78,9 @@ void main() {
     vec3 col = mix(base, wire_col, wf * 0.55);
 
     // LOD boundary seam — the pop made visible as a bright edge
-    float seam01 = smoothstep(LOD0_DIST + 0.01, LOD0_DIST, frag_dist)
+    float seam01 = (1.0 - smoothstep(LOD0_DIST, LOD0_DIST + 0.01, frag_dist))
                  * smoothstep(LOD0_DIST - 0.02, LOD0_DIST, frag_dist);
-    float seam12 = smoothstep(LOD1_DIST + 0.01, LOD1_DIST, frag_dist)
+    float seam12 = (1.0 - smoothstep(LOD1_DIST, LOD1_DIST + 0.01, frag_dist))
                  * smoothstep(LOD1_DIST - 0.02, LOD1_DIST, frag_dist);
 
     // Pop flash: brief bright band that propagates outward at the moment of snap
