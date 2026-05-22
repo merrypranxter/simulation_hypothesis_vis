@@ -45,7 +45,7 @@ float aabb(vec2 p, vec2 center, vec2 half_ext) {
 float scan_ring(vec2 p, float t, float speed, float width) {
     float r = length(p);
     float wave_r = mod(t * speed, 2.5);
-    return smoothstep(width, 0.0, abs(r - wave_r));
+    return 1.0 - smoothstep(0.0, width, abs(r - wave_r));
 }
 
 void main() {
