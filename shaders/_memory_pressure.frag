@@ -105,12 +105,12 @@ vec3 render_building(vec2 uv, float dist, float seed) {
     // LOD1: mid distance, facades but no interior
     else if (dist > LOD_DISTANCE_1) {
         // LOD pop: transition from LOD0 to LOD1
-        float lod_blend = smoothstep(LOD_DISTANCE_2, LOD_DISTANCE_1, dist);
+        float lod_blend = smoothstep(LOD_DISTANCE_1, LOD_DISTANCE_2, dist);
         col = mix(lod1(uv, dist, seed), lod0(uv, dist), lod_blend);
     }
     // LOD2: close, full detail
     else {
-        float lod_blend = smoothstep(LOD_DISTANCE_1, 0.05, dist);
+        float lod_blend = smoothstep(0.05, LOD_DISTANCE_1, dist);
         col = mix(lod2(uv, dist, seed), lod1(uv, dist, seed), lod_blend);
     }
     
