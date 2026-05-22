@@ -143,7 +143,7 @@ void main() {
     
     // Pop-in: buildings appear as camera approaches
     float pop_threshold = 0.55 + 0.05 * sin(seed * 20.0);
-    float pop = smoothstep(pop_threshold, pop_threshold - 0.05, dist_from_cam);
+    float pop = 1.0 - smoothstep(pop_threshold - 0.05, pop_threshold, dist_from_cam);
     
     if (cull > 0.5 && pop > 0.01) {
         vec3 bcol = render_building(local, dist_from_cam, seed);
