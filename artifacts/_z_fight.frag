@@ -86,7 +86,7 @@ void main() {
 
     // Z-fight boundary indicator — the engine's confusion made legible
     float boundary = smoothstep(fight_radius - 0.05, fight_radius, length(world))
-                   * smoothstep(fight_radius + 0.03, fight_radius, length(world));
+                   * (1.0 - smoothstep(fight_radius, fight_radius + 0.03, length(world)));
     col = mix(col, vec3(0.8, 0.2, 0.0), boundary * 0.5);
 
     // Scanline overlay: reveals the per-pixel depth comparison cadence
