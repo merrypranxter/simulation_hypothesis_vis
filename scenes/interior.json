@@ -3,7 +3,7 @@
   "label": "_portal_occlusion",
   "description": "A corridor of rooms. Portal rendering gates draw calls — only what the engine can see through a doorway gets submitted. Step outside the portal and the room stops existing.",
   "shader": "shaders/_portal_occlusion.frag",
-  "uniforms": {
+  "compile_time_defines": {
     "PORTAL_FADE": 0.05,
     "ROOM_DEPTH": 6
   },

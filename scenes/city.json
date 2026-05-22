@@ -3,7 +3,7 @@
   "label": "_memory_pressure",
   "description": "Dense procedural city. 100k+ instanced buildings. LOD transitions, texture streaming, entity pop-in — all the symptoms of a simulation running out of VRAM.",
   "shader": "shaders/_memory_pressure.frag",
-  "uniforms": {
+  "compile_time_defines": {
     "STREAM_SPEED": 4.0,
     "LOD_DISTANCE_1": 0.15,
     "LOD_DISTANCE_2": 0.35

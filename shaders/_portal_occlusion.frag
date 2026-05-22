@@ -13,25 +13,14 @@ uniform float u_time;
 #define PORTAL_FADE 0.05
 #define MAX_ROOMS 6
 
-float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
-
 // Axis-aligned slab SDF: signed distance to a rectangle
 float sdRect(vec2 p, vec2 b) {
     vec2 d = abs(p) - b;
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
 }
 
-// Portal: a vertical opening in a wall
-float portal(vec2 p, float wall_x) {
-    float wall = abs(p.x - wall_x) - 0.01;
-    float aperture = abs(p.y) - 0.25; // door height ±0.25
-    return max(wall, -aperture);       // carve aperture from wall
-}
-
 // Room interior floor/ceiling/wall shading
-vec3 room_shade(vec2 local, int depth, float seed) {
+vec3 room_shade(vec2 local, int depth) {
     float fi = float(depth);
     // Floor line
     float floor_line = abs(local.y + 0.35) - 0.01;
@@ -96,8 +85,6 @@ void main() {
 
         if (in_room < 0.5) continue;
 
-        float seed = hash(vec2(fd, 3.7));
-
         // Portal clip: room d is only visible through the portal at x = -0.5
         // (the wall between room d-1 and room d).
         // Compute how much of the portal opening is in view.
@@ -110,7 +97,7 @@ void main() {
         float contrib = visible_through_portal * budget;
         if (contrib < 0.01) continue;
 
-        vec3 room_col = room_shade(local, d, seed);
+        vec3 room_col = room_shade(local, d);
 
         // Portal edge: brief bright frame where the wall is
         float wall_edge = 1.0 - smoothstep(0.0, 0.015, abs(abs(local.x) - 0.49));

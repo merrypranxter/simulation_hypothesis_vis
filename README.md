@@ -70,7 +70,7 @@ The UI sidebar lets you switch between all shaders. Keyboard shortcuts: `1`–`9
 
 ## Uniform Convention
 
-All shaders use the standard Shadertoy-compatible uniform set:
+The runner provides a standard Shadertoy-compatible uniform set when a shader declares it:
 
 ```glsl
 uniform vec2  u_resolution;   // viewport size in pixels

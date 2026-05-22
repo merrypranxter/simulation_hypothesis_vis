@@ -3,7 +3,7 @@
   "label": "_void_state",
   "description": "The simulation before it starts. Empty spatial partitioning structures, uninstantiated bounding volumes, the lattice of computational space with nothing loaded into it yet.",
   "shader": "shaders/_void_state.frag",
-  "uniforms": {
+  "compile_time_defines": {
     "GRID_SCALE": 8.0,
     "PULSE_SPEED": 0.4
   },
