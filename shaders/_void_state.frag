@@ -75,8 +75,8 @@ void main() {
     col += vec3(0.0, 0.7, 0.3) * g2 * 0.12;
 
     // ----- Origin axis -----
-    float axis_x = smoothstep(0.003, 0.0, abs(world.y));
-    float axis_y = smoothstep(0.003, 0.0, abs(world.x));
+    float axis_x = 1.0 - smoothstep(0.0, 0.003, abs(world.y));
+    float axis_y = 1.0 - smoothstep(0.0, 0.003, abs(world.x));
     col += vec3(0.1, 0.6, 0.9) * axis_x * 0.35;
     col += vec3(0.9, 0.2, 0.1) * axis_y * 0.35;
 
